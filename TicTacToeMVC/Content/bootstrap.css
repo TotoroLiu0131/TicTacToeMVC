@@ -41,7 +41,18 @@ canvas,
 video {
   display: inline-block;
 }
+table {
+    border-collapse: collapse;
+}
 
+td {
+    border: 5px solid #000;
+    width: 100px;
+    height: 100px;
+    line-height: 100px;
+    text-align: center;
+    font-size: 50pt;
+}
 audio:not([controls]) {
   display: none;
   height: 0;

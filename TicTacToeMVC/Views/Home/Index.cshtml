@@ -8,7 +8,7 @@
 <div class="row">
     @using (Html.BeginForm("Input", "Home", FormMethod.Post))
     {
-        @Html.LabelFor(x=>x.Result);
+    
         <table>
             <tr>
                 <td id="0">@Model.TopLeft</td>
@@ -26,9 +26,10 @@
                 <td id="8">@Model.BottomRight</td>
             </tr>
         </table>
-        @*@Html.EnumDropDownListFor(m=>m.DropList)*@
         @Html.DropDownListFor(m=>m.Selected,Model.PositionList)
-        <input type="submit" class="btn btn-info" value="Submt" />
+        <input type="submit" @(Model.SubmitEnable ? "" : "disabled") class="btn btn-info" value="Submt" />
         <input type="button" class="btn btn-info" value="ReStart" onclick="location.href='@Url.Action("Index", "Home")'" />
+
     }
 </div>
+@Html.DisplayTextFor(x=>x.Result)

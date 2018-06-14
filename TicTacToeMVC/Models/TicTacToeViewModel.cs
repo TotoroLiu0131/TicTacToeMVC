@@ -21,5 +21,6 @@ namespace TicTacToeMVC.Models
         public List<SelectListItem> PositionList { get;  set; }
         public string Selected { get; set; }
         public string Result { get; set; }
+        public bool SubmitEnable { get; set; } = true;
     }
 }

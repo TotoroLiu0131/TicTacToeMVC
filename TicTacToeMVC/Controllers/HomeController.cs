@@ -3,24 +3,41 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web.Mvc;
 using TicTacToeMVC.Models;
-using WebGrease.Css.Extensions;
 
 namespace TicTacToeMVC.Controllers
 {
     public class HomeController : Controller
     {
-        private Dictionary<string, int> _dropDownLookup = new Dictionary<string, int>()
+        private static List<string> _selectedDropDownList = new List<string>();
+
+        private static Dictionary<string, string> _selectedViewLookup = new Dictionary<string, string>();
+
+        private List<List<int>> _winningOptions = new List<List<int>>
         {
-            {"TopLeft",0},
-            {"TopCenter",1},
-            {"TopRight",2},
-            {"MiddleLeft",3},
-            {"MiddleCenter",4},
-            {"MiddleRight",5},
-            {"BottomLeft",6},
-            {"BottomCenter",7},
-            {"BottomRight",8},
+            new List<int> {0,1,2},
+            new List<int> {3,4,5},
+            new List<int> {6,7,8},
+            new List<int> {0,3,6},
+            new List<int> {1,4,7},
+            new List<int> {2,5,8},
+            new List<int> {0,4,8},
+            new List<int> {2,4,6}
         };
+
+        private List<string> _dropDownList = new List<string>()
+        {
+            "TopLeft",
+            "TopCenter",
+            "TopRight",
+            "MiddleLeft",
+            "MiddleCenter",
+            "MiddleRight",
+            "BottomLeft",
+            "BottomCenter",
+            "BottomRight",
+        };
+
+        private string _result = string.Empty;
 
         private Dictionary<string, string> _viewLookup = new Dictionary<string, string>()
         {
@@ -35,24 +52,11 @@ namespace TicTacToeMVC.Controllers
             {"BottomRight", string.Empty},
         };
 
-        private static int[,] _winningOptions = {
-            {0,1,2},
-            {3,4,5},
-            {6,7,8},
-            {0,3,6},
-            {1,4,7},
-            {2,5,8},
-            {0,4,8},
-            {2,4,6}
-        };
-
-        private static Dictionary<string, int> _selectedDropDownLookup = new Dictionary<string, int>();
-        private static Dictionary<string, string> _selectedViewLookup = new Dictionary<string, string>();
-        private string _result = string.Empty;
+        private bool _submitEnable = true;
 
         public ActionResult Index()
         {
-            _selectedDropDownLookup = _dropDownLookup;
+            _selectedDropDownList = _dropDownList;
             _selectedViewLookup = _viewLookup;
             return View("Index", GetViewModel());
         }
@@ -60,69 +64,71 @@ namespace TicTacToeMVC.Controllers
         [HttpPost]
         public ActionResult Input(TicTacToeViewModel model)
         {
-            
-            _selectedDropDownLookup.Remove(model.Selected);
-            _selectedViewLookup[model.Selected] = "O";
+            SetPlayerUi(model.Selected);
 
-            if (_selectedDropDownLookup.Count > 1)
-            {
-                var list = new List<int>();
-                _selectedDropDownLookup.ForEach(x => list.Add(x.Value));
-                var rand = new Random();
-                var value = list[rand.Next(0, list.Count)];
-                var key = _selectedDropDownLookup.FirstOrDefault(x => x.Value == value).Key;
-                _selectedDropDownLookup.Remove(key);
-                _selectedViewLookup[key] = "X";
-            }
-            else
-            {
-                //for (int i = 0; i < _winningOptions.Length; i++)
-                //{
-                //    if (_selectedViewLookup)
-                //    {
-                        
-                //    }
-                //}
+            if (CheckWinner())
+                return View("Index", GetViewModel());
 
-                //if (_selectedViewLookup["TopLeft"] == _selectedViewLookup["TopCenter"] &&
-                //    _selectedViewLookup["TopCenter"] == _selectedViewLookup["TopRight"])
-                //{
-                //    _result = _selectedViewLookup["TopCenter"] == "O" ? "You Win" : "You Lose";
-                //}
-                //else if (_selectedViewLookup["MiddleLeft"] == _selectedViewLookup["MiddleCenter"] &&
-                //         _selectedViewLookup["MiddleCenter"] == _selectedViewLookup["MiddleRight"])
-                //{
-                //    _result = _selectedViewLookup["MiddleLeft"] == "O" ? "You Win" : "You Lose";
-                //}
-                //else if (_selectedViewLookup["BottomLeft"] == _selectedViewLookup["BottomCenter"] &&
-                //         _selectedViewLookup["BottomCenter"] == _selectedViewLookup["BottomRight"])
-                //{
-                    
-                //}
-                //if ( ||
-                //    (_selectedViewLookup["BottomLeft"] == _selectedViewLookup["BottomCenter"] &&
-                //     _selectedViewLookup["BottomCenter"] == _selectedViewLookup["BottomRight"]) ||
-                //    (_selectedViewLookup["TopLeft"] == _selectedViewLookup["MiddleLeft"] &&
-                //     _selectedViewLookup["MiddleLeft"] == _selectedViewLookup["BottomLeft"]) ||
-                //    (_selectedViewLookup["TopCenter"] == _selectedViewLookup["MiddleCenter"] &&
-                //     _selectedViewLookup["MiddleCenter"] == _selectedViewLookup["BottomCenter"]) ||
-                //    (_selectedViewLookup["TopRight"] == _selectedViewLookup["MiddleRight"] &&
-                //     _selectedViewLookup["MiddleRight"] == _selectedViewLookup["BottomRight"]) ||
-                //    (_selectedViewLookup["TopLeft"] == _selectedViewLookup["MiddleCenter"] &&
-                //     _selectedViewLookup["MiddleCenter"] == _selectedViewLookup["BottomRight"]) ||
-                //    (_selectedViewLookup["TopRight"] == _selectedViewLookup["MiddleCenter"] &&
-                //     _selectedViewLookup["MiddleCenter"] == _selectedViewLookup["BottomLeft"]) 
-                //    )
-                //{
-                //    _result = "";
-                //}
-                //else
-                //{
-                //    _result = "Tie";
-                //}
+            if (_selectedDropDownList.Count == 0)
+            {
+                _submitEnable = false;
+                _result = "Tie";
+                return View("Index", GetViewModel());
             }
+
+            SetAIUi();
+
+            CheckWinner();
 
             return View("Index", GetViewModel());
+        }
+
+        private static void SetAIUi()
+        {
+            var value = _selectedDropDownList[new Random().Next(0, _selectedDropDownList.Count)];
+            _selectedDropDownList.Remove(value);
+            _selectedViewLookup[value] = "X";
+        }
+
+        private void SetPlayerUi(string selected)
+        {
+            _selectedDropDownList.Remove(selected);
+            _selectedViewLookup[selected] = "O";
+        }
+
+        private bool CheckWinner()
+        {
+            foreach (var list in _winningOptions)
+            {
+                if (_selectedViewLookup.ElementAt(list[0]).Value == string.Empty ||
+                    _selectedViewLookup.ElementAt(list[1]).Value == string.Empty ||
+                    _selectedViewLookup.ElementAt(list[2]).Value == string.Empty)
+                    continue;
+
+                if (_selectedViewLookup.ElementAt(list[0]).Value == _selectedViewLookup.ElementAt(list[1]).Value &&
+                    _selectedViewLookup.ElementAt(list[1]).Value == _selectedViewLookup.ElementAt(list[2]).Value)
+                {
+                    _result = _selectedViewLookup.ElementAt(list[0]).Value == "O" ? "You Win" : "You Lose";
+                    _submitEnable = false;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private List<SelectListItem> GetDropDownList()
+        {
+            var dropItems = new List<SelectListItem>();
+            foreach (var value in _selectedDropDownList)
+            {
+                dropItems.Add(new SelectListItem()
+                {
+                    Text = value,
+                    Value = value,
+                });
+            }
+            return dropItems;
         }
 
         private TicTacToeViewModel GetViewModel()
@@ -139,22 +145,9 @@ namespace TicTacToeMVC.Controllers
                 BottomCenter = _selectedViewLookup["BottomCenter"],
                 BottomRight = _selectedViewLookup["BottomRight"],
                 PositionList = GetDropDownList(),
+                SubmitEnable = _submitEnable,
                 Result = _result
             };
-        }
-
-        private List<SelectListItem> GetDropDownList()
-        {
-            var dropItems = new List<SelectListItem>();
-            foreach (var i in _selectedDropDownLookup)
-            {
-                dropItems.Add(new SelectListItem()
-                {
-                    Text = i.Key,
-                    Value = i.Key,
-                });
-            }
-            return dropItems;
         }
     }
 }
